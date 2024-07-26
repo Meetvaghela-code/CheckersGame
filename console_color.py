@@ -1,0 +1,11 @@
+class Color(object):
+    BLACK = "\u001b[30m"
+    RED = "\u001b[1;31m"
+    WHITE = "\u001b[37m"
+    RESET = "\u001b[0m"
+    GREEN = "\033[1;32m"
+    YELLOW = "\033[1;33m"
+    PURPLE = "\033[1;35m"
+    BOLD = "\033[1m"
+    BLUE = "\033[1;36m"
+    PURPLE_BACKGROUND = "\u001b[45;1m"
