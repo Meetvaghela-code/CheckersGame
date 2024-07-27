@@ -8,7 +8,7 @@ import time
 pygame.init()
 
 # Constants
-WIDTH, HEIGHT = 1150, 800  # Increased the WIDTH
+WIDTH, HEIGHT = 1150, 800
 BOARD_WIDTH = 800
 MENU_WIDTH = WIDTH - BOARD_WIDTH
 ROWS, COLS = 8, 8
@@ -216,6 +216,7 @@ class Game:
         self.white_time = 0
         self.turn_start_time = time.time()
         self.game_over = False
+        self.game_end_time = None
 
     def update(self):
         self.board.draw(self.screen)
@@ -236,10 +237,11 @@ class Game:
         self.turn_start_time = current_time
 
         # Check for a win condition after changing turns
-        if self.check_for_win():
-            self.game_over = True
+        self.check_for_win()
 
     def update_timer(self):
+        if self.game_over:
+            return
         current_time = time.time()
         if self.turn == RED:
             self.red_time += current_time - self.turn_start_time
@@ -351,13 +353,15 @@ class Game:
 
     def display_winner(self, winner):
         font = pygame.font.Font(None, 74)
-        text = font.render(f"Congratulations {winner}, you win the game!", True, BLUE)
+        text = font.render(f"Congratulations {winner}, you win!", True, BLUE)
         text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        screen.blit(text, text_rect)
+        self.screen.blit(text, text_rect)
         
         pygame.display.update()
         pygame.time.wait(3000)  # Wait for 3 seconds
-
+        
+        self.game_over = True
+        self.game_end_time = time.time()
 
 def format_time(seconds):
     minutes, seconds = divmod(int(seconds), 60)
@@ -383,15 +387,23 @@ def draw_in_game_menu(screen, game):
         text_rect = button_text.get_rect(center=(BOARD_WIDTH + MENU_WIDTH // 2, y))
         screen.blit(button_text, text_rect)
 
+    if game.game_over:
+        game_over_text = font.render("Game Over", True, RED)
+        screen.blit(game_over_text, (BOARD_WIDTH + 10, 150))
+
     # Display current player's turn
-    turn_text = font.render(f"Current Turn: {'Red' if game.turn == RED else 'White'}", True, BLACK)
+    if not game.game_over:
+        turn_text = font.render(f"Current Turn: {'Red' if game.turn == RED else 'White'}", True, BLACK)
+    else:
+        turn_text = font.render("Game Finished", True, BLACK)
     screen.blit(turn_text, (BOARD_WIDTH + 10, 50))
 
     # Display overall timer
     overall_time = game.red_time + game.white_time
+    if game.game_over:
+        overall_time = game.game_end_time - game.turn_start_time + overall_time
     overall_timer = font.render(f"Overall Time: {format_time(overall_time)}", True, BLACK)
     screen.blit(overall_timer, (BOARD_WIDTH + 10, 100))
-
 
 def save_game(game):
     with open("checkers_save.json", "w") as f:
@@ -419,10 +431,10 @@ def main():
             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
-                if x < BOARD_WIDTH:
+                if x < BOARD_WIDTH and not game.game_over:
                     row, col = y // SQUARE_SIZE, x // SQUARE_SIZE
                     game.select(row, col)
-                else:
+                elif x > BOARD_WIDTH:
                     # Menu button clicks
                     if BOARD_WIDTH + 50 < x < WIDTH - 50:
                         if HEIGHT // 2 - 225 < y < HEIGHT // 2 - 175:
@@ -446,11 +458,10 @@ def main():
 
         game.update()
 
-        if game.hint_mode:
+        if game.hint_mode and not game.game_over:
             hint = game.get_hint()
             game.draw_hint(hint)
 
         clock.tick(60)
-
 if __name__ == "__main__":
     main()
